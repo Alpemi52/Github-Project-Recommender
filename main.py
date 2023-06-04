@@ -1,12 +1,31 @@
 from tkinter import *
 from tkinter import ttk
+from tkinter import filedialog
 
 
-class GithubRecom(Frame):
+class GithubProjectRecommender(Frame):
     def __init__(self, parent):
+        self.repositories = []
+        self.stars = []
+        self.users = []
+
         Frame.__init__(self, parent)
         self.initUI(parent)
         
+
+    def readAllData(self,filename,arr):
+        with open(filename,"r") as file:
+            arr = file.readlines()
+    def chooseUserData(self):
+        filename = filedialog.askopenfilename(initialdir="C:\nahitmamati\github\Github-Project-Recommender", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
+        self.readAllData(filename,self.users)
+    def chooseStarData(self):
+        filename = filedialog.askopenfilename(initialdir="C:\nahitmamati\github\Github-Project-Recommender", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
+        self.readAllData(filename,self.stars)
+    def chooseRepositoryData(self):
+        filename = filedialog.askopenfilename(initialdir="C:\nahitmamati\github\Github-Project-Recommender", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
+        self.readAllData(filename=filename,arr=self.repositories)
+
     def initUI(self, parent):
         
         #entry
@@ -30,9 +49,9 @@ class GithubRecom(Frame):
         self.eucl_chk = Checkbutton() 
         
         #buttons
-        self.upload_user_btn = Button(text="Upload User Data", height=2)
-        self.upload_repo_btn = Button(text="Upload Repository Data", height=2)
-        self.upload_star_btn = Button(text="Upload Star Data", height=2)
+        self.upload_user_btn = Button(text="Upload User Data", height=2, command=self.chooseUserData)
+        self.upload_repo_btn = Button(text="Upload Repository Data", height=2, command=self.chooseRepositoryData)
+        self.upload_star_btn = Button(text="Upload Star Data", height=2, command=self.chooseStarData)
         self.reco_repo_btn  = Button(text="Recommend Repository", height=2)
         self.reco_git_btn = Button(text="Recommend Github User", height=2)
         
@@ -90,15 +109,13 @@ class GithubRecom(Frame):
         self.nmb_entry.grid(row=7, column=0, sticky=NE, padx=50)
         
         #Row 8
-        
-
 def main():
     root = Tk()
     root.title("Github Repository Recommender")
     root.geometry("1150x700+385+110",)
     root.resizable(False, False)
     
-    GithubRecom(root)
+    GithubProjectRecommender(root)
     root.mainloop()
 
 main()
