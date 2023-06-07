@@ -13,19 +13,28 @@ class GithubProjectRecommender(Frame):
         self.initUI(parent)
         
 
-    def readAllData(self,filename,arr):
-        with open(filename,"r") as file:
-            arr = file.readlines()
-    def chooseUserData(self):
-        filename = filedialog.askopenfilename(initialdir="C:\nahitmamati\github\Github-Project-Recommender", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
-        self.readAllData(filename,self.users)
-    def chooseStarData(self):
-        filename = filedialog.askopenfilename(initialdir="C:\nahitmamati\github\Github-Project-Recommender", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
-        self.readAllData(filename,self.stars)
-    def chooseRepositoryData(self):
-        filename = filedialog.askopenfilename(initialdir="C:\nahitmamati\github\Github-Project-Recommender", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
-        self.readAllData(filename=filename,arr=self.repositories)
+    def readAllData(self, filename, arr):
+        with open(filename, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                arr.append(line.strip().lower().split(","))
 
+    def chooseUserData(self):
+        filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
+        self.readAllData(filename, self.users)
+        
+        self.users.sort(key=lambda user: user[1])
+        for user in self.users:
+                self.repo_view.insert("", "end", values=(user[1], user[0]))
+
+    def chooseStarData(self):
+        filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
+        self.readAllData(filename, self.stars)
+
+    def chooseRepositoryData(self):
+        filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
+        self.readAllData(filename, self.repositories)
+        
     def initUI(self, parent):
         
         #entry
