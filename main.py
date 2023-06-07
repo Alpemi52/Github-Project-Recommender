@@ -34,6 +34,14 @@ class GithubProjectRecommender(Frame):
     def chooseRepositoryData(self):
         filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
         self.readAllData(filename, self.repositories)
+
+        lang_names = ["None"]
+        for repo in self.repositories:
+            if repo[-1:] not in lang_names:
+                lang_names.append(repo[-1:])
+            
+        self.combobox['values'] = lang_names
+        self.combobox.current(0)
         
     def initUI(self, parent):
         
