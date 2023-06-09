@@ -1,47 +1,127 @@
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
-
+from recommendations import sim_distance, sim_pearson, getRecommendations,  topMatches
 
 class GithubProjectRecommender(Frame):
     def __init__(self, parent):
-        self.repositories = []
-        self.stars = []
-        self.users = []
+        self.repositories = {}
+        self.stars = {}
+        self.users = {}
 
         Frame.__init__(self, parent)
         self.initUI(parent)
         
 
-    def readAllData(self, filename, arr):
+    def readUserData(self, filename, lst):
         with open(filename, "r") as file:
             lines = file.readlines()
             for line in lines:
-                arr.append(line.strip().lower().split(","))
+                line = line.strip().lower().split(",")
+                user_id = line[0]
+                username = line[1]
+                url = line[2]
+                lst[user_id] = {'username': username, 'user_id': user_id, 'url': url}
 
+    def readStarData(self, filename, lst):
+        with open(filename, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                line = line.strip().split("\t")
+                user_id = int(line[0])
+                stars = list(map(int, line[1].split(",")))
+                lst[user_id] = {repo: 5.0 for repo in stars}
+        print(lst)
+    
+    def readRepositoryData(self, filename, lst):
+        with open(filename, "r") as file:
+            lines = file.readlines()
+            for line in lines:
+                line = line.strip().split(",")
+                repo_id = line[0]
+                name = line[1]
+                url = line[2]
+                language = line[3]
+                lst[repo_id] = {'repo_id': repo_id, 'name': name, 'url': url, 'language': language}
+        print(lst)
+            
     def chooseUserData(self):
         filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
-        self.readAllData(filename, self.users)
-        
-        self.users.sort(key=lambda user: user[1])
-        for user in self.users:
-                self.repo_view.insert("", "end", values=(user[1], user[0]))
+        self.readUserData(filename, self.users)
 
+        self.repo_view.delete(*self.repo_view.get_children())
+        sorted_users = sorted(self.users.values(), key=lambda x: x['username'])  
+
+        for user_data in sorted_users:
+            username = user_data['username']
+            user_id = user_data['user_id']
+            url = user_data['url']
+            self.repo_view.insert("", "end", values=(username, user_id, url))
+            
     def chooseStarData(self):
         filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
-        self.readAllData(filename, self.stars)
+        self.readStarData(filename, self.stars)
 
     def chooseRepositoryData(self):
         filename = filedialog.askopenfilename(initialdir="C:\\Users\\user\\Desktop\\pythonfinal", title="Select a File", filetypes=(("Txt files", ["*.txt"]),))
-        self.readAllData(filename, self.repositories)
+        self.readRepositoryData(filename, self.repositories)
 
-        lang_names = ["None"]
-        for repo in self.repositories:
-            if repo[-1:] not in lang_names:
-                lang_names.append(repo[-1:])
+        lang_names = set()
+        lang_names = ["None"]        
+        for repo_data in self.repositories.values():
+            language = repo_data['language']
+            if language not in lang_names:
+                lang_names.append(language)
+
+        self.combobox['values'] = list(lang_names)
+        self.combobox.current(0)  
+    
+    def recommendedRepository(self):
+        selected_user = self.repo_view.focus()
+        selected_item = self.repo_view.item(selected_user)
+        id = selected_item['values'][1]
+        func = sim_pearson if self.person_chk_var.get() else sim_distance
+        recommendation = getRecommendations(self.stars, id, func)
+        
+        self.reco_view.delete(*self.reco_view.get_children())
+        for i in range(min(len(recommendation), 3 if not self.nmb_entry.get() else int(self.nmb_entry.get()))):
             
-        self.combobox['values'] = lang_names
-        self.combobox.current(0)
+            repo_id = recommendation[i][1]
+            repo_data = self.repositories.get(str(repo_id))
+            repo_name = repo_data.get('name')
+            repo_url = repo_data.get('url')
+            score = recommendation[i][0]
+            self.reco_view.insert("", "end", values=(repo_name, repo_url, score))
+            
+    def recommendedUser(self):
+        selected_user = self.repo_view.focus()
+        selected_item = self.repo_view.item(selected_user)
+
+        user_id = selected_item['values'][1]  # Kullanıcı ID'si
+        func = sim_pearson if self.person_chk_var.get() else sim_distance
+        recommendation = topMatches(self.stars, 3 if not self.nmb_entry.get() else int(self.nmb_entry.get()) , user_id, func)
+        
+        self.reco_view.delete(*self.reco_view.get_children())
+        for i in range(min(len(recommendation), 3 if not self.nmb_entry.get() else int(self.nmb_entry.get()))):
+            similar_user_id = recommendation[i][1]
+            user_data = self.users.get(str(similar_user_id))
+            username = user_data.get('username')
+            url = user_data.get('url')
+            score = recommendation[i][0]
+            self.reco_view.insert("", "end", values=(username, url, score))
+        
+    def checkbox1_selected(self):
+        if self.person_chk_var.get():
+            self.eucl_chk_var.set(False)  
+        else:
+            self.eucl_chk_var.set(True)  
+
+    def checkbox2_selected(self):
+        if self.eucl_chk_var.get():
+            self.person_chk_var.set(False)
+        else:
+            self.person_chk_var.set(True) 
+    
         
     def initUI(self, parent):
         
@@ -62,15 +142,20 @@ class GithubProjectRecommender(Frame):
         self.combobox = ttk.Combobox()
         
         #checkbox
-        self.person_chk = Checkbutton()
-        self.eucl_chk = Checkbutton() 
+        self.person_chk_var = BooleanVar()
+        self.person_chk_var.set(True)
+        self.person_chk = Checkbutton(variable=self.person_chk_var, command= self.checkbox1_selected)
+        
+        self.eucl_chk_var = BooleanVar()
+        self.eucl_chk = Checkbutton(variable=self.eucl_chk_var, command=self.checkbox2_selected) 
+        
         
         #buttons
         self.upload_user_btn = Button(text="Upload User Data", height=2, command=self.chooseUserData)
         self.upload_repo_btn = Button(text="Upload Repository Data", height=2, command=self.chooseRepositoryData)
         self.upload_star_btn = Button(text="Upload Star Data", height=2, command=self.chooseStarData)
-        self.reco_repo_btn  = Button(text="Recommend Repository", height=2)
-        self.reco_git_btn = Button(text="Recommend Github User", height=2)
+        self.reco_repo_btn  = Button(text="Recommend Repository", height=2, command= self.recommendedRepository)
+        self.reco_git_btn = Button(text="Recommend Github User", height=2, command=self.recommendedUser)
         
         #trewiews
         self.repo_view = ttk.Treeview(columns=("Username", "Id"), show="headings")
